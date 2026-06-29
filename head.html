@@ -1,8 +1,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
-<!-- FEDERATED CHILD: styles come from the foundation-kit-fed (FED) origin.
-     The engine (ak.js) is imported by our local scripts.js from FED, so all
-     framework code + blocks load from FED. This site only adds its own
+<!-- FEDERATED CHILD: framework code comes from the FED repo via the /libs path.
+     The Cloudflare worker rewrites /libs/* to the FED origin server-side, so
+     these are SAME-ORIGIN requests (no CORS). This site only adds its own
      custom blocks/templates locally (to be "broken off" later). -->
-<link rel="stylesheet" href="https://main--foundation-kit-fed--angelaccenture.aem.live/styles/styles.css"/>
+<link rel="stylesheet" href="/libs/styles/styles.css"/>
 <script src="/scripts/scripts.js" type="module"></script>
 <link rel="icon" href="data:,">
