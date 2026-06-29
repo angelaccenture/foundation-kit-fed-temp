@@ -16,6 +16,21 @@ The worker sits in front of this site. For every request:
 Because the browser only ever talks to this site's domain, `/libs/*` is
 **same-origin** — no CORS. The cross-origin hop happens server-side in the worker.
 
+## Testing an unmerged FED branch (`?fed-ref=`)
+
+By default `/libs` comes from FED's `main`. To preview an **unmerged FED branch**
+against this site (the "see my change's impact before I PR" workflow), add
+`?fed-ref=<branch>` to the URL:
+
+```
+https://<this-site-worker>/?fed-ref=update-columns
+```
+
+The worker then serves `/libs/*` from `update-columns--foundation-kit-fed--angelaccenture.aem.page`
+instead of main. Branch names are sanitized (letters/numbers/`.`/`_`/`-` only) so
+the param can't point `/libs` at an arbitrary origin. Without the param, `/libs`
+always resolves from `main` (safe for production).
+
 ## Files
 
 - `federation-worker.js` — the worker code (the `/libs` rewrite logic)
