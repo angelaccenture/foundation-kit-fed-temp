@@ -16,6 +16,20 @@ The worker sits in front of this site. For every request:
 Because the browser only ever talks to this site's domain, `/libs/*` is
 **same-origin** — no CORS. The cross-origin hop happens server-side in the worker.
 
+## Previewing draft content (`?env=preview`)
+
+By default the worker serves this site's **live** content (`.aem.live`). To see
+**draft/unpublished** pages (`.aem.page`) — WITH `/libs` resolving correctly —
+add `?env=preview`:
+
+```
+https://<this-site-worker>/my-draft-page?env=preview
+```
+
+Without the param you get live content. (In production, a custom domain with a
+dedicated preview route — e.g. `preview.brand.com` — is the cleaner way to do
+this; the param is the single-URL equivalent for the workers.dev setup.)
+
 ## Testing an unmerged FED branch (`?fed-ref=`)
 
 By default `/libs` comes from FED's `main`. To preview an **unmerged FED branch**

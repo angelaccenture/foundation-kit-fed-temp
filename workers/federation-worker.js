@@ -9,6 +9,12 @@
  * so there is NO CORS problem. The cross-origin hop happens server-side here,
  * inside the worker, where CORS rules don't apply.
  *
+ * PREVIEW vs LIVE (?env=preview):
+ *   By default the SITE content is served from the live tier (.aem.live).
+ *   Add ?env=preview to see this site's DRAFT/preview content (.aem.page)
+ *   through the worker — so you can preview unpublished pages WITH /libs
+ *   working. Absent the param, you get live content.
+ *
  * FED-BRANCH TESTING (?fed-ref=):
  *   By default /libs is served from FED's `main`. A federated block engineer
  *   can preview an UNMERGED FED branch against this site by adding
@@ -17,32 +23,40 @@
  *   This lets them see how a change impacts a consuming site BEFORE the PR.
  *   Absent the param, /libs always comes from main (safe for production).
  *
- * To reuse this worker for a NEW consuming site, change SITE_ORIGIN to that
- * site's own .aem.live origin. The FED constants stay the same.
+ * To reuse this worker for a NEW consuming site, change the SITE_* constants
+ * to that site's repo/owner. The FED_* constants stay the same.
  */
 
-// This site's own .aem.live origin (where non-/libs content lives).
-const SITE_ORIGIN = 'main--foundation-kit-fed-temp--angelaccenture.aem.live';
+// ---- THIS site (the consuming child) ----
+const SITE_REPO = 'foundation-kit-fed-temp';
+const SITE_OWNER = 'angelaccenture';
+const SITE_BRANCH = 'main';
 
-// The federated project's repo + owner (used to build the FED origin per ref).
+// ---- The federated project (the "/libs" source) ----
 const FED_REPO = 'foundation-kit-fed';
 const FED_OWNER = 'angelaccenture';
-
-// Default FED branch when no ?fed-ref= override is supplied.
 const FED_DEFAULT_REF = 'main';
 
 // The URL prefix that signals "this is federated code, get it from FED".
 const LIBS_PREFIX = '/libs';
 
-// Build the FED origin for a given branch ref.
-// main -> production .aem.live; any other branch -> its .aem.page preview.
+// Build an aem origin. live=true -> .aem.live (published), else -> .aem.page (preview).
+function aemOrigin(branch, repo, owner, live) {
+  return `${branch}--${repo}--${owner}.${live ? 'aem.live' : 'aem.page'}`;
+}
+
+// This site's origin. ?env=preview -> draft (.aem.page); default -> live (.aem.live).
+function siteOrigin(preview) {
+  return aemOrigin(SITE_BRANCH, SITE_REPO, SITE_OWNER, !preview);
+}
+
+// FED origin for a given branch ref. main -> .aem.live; other branches -> .aem.page.
 function fedOrigin(ref) {
-  const tld = ref === FED_DEFAULT_REF ? 'aem.live' : 'aem.page';
-  return `${ref}--${FED_REPO}--${FED_OWNER}.${tld}`;
+  return aemOrigin(ref, FED_REPO, FED_OWNER, ref === FED_DEFAULT_REF);
 }
 
 // Only allow safe branch names (letters, numbers, dot, underscore, hyphen).
-// Prevents the param from being used to point /libs at an arbitrary origin.
+// Prevents a param from pointing an origin at somewhere arbitrary.
 function safeRef(ref) {
   return ref && /^[\w.-]+$/.test(ref) ? ref : FED_DEFAULT_REF;
 }
@@ -51,11 +65,13 @@ export default {
   async fetch(request) {
     const url = new URL(request.url);
 
-    // Which FED branch should /libs resolve from? Default main; ?fed-ref overrides.
+    // ?env=preview -> serve this site's draft content from .aem.page.
+    const preview = url.searchParams.get('env') === 'preview';
+    // ?fed-ref=<branch> -> serve /libs from that FED branch (default main).
     const fedRef = safeRef(url.searchParams.get('fed-ref'));
 
     // Decide which origin to fetch from, and what path to use there.
-    let origin = SITE_ORIGIN;
+    let origin = siteOrigin(preview);
     let path = url.pathname;
 
     if (url.pathname === LIBS_PREFIX || url.pathname.startsWith(`${LIBS_PREFIX}/`)) {
